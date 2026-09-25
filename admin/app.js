@@ -1,6 +1,8 @@
 const API = '';
 let token = localStorage.getItem('admin_token');
 let user = JSON.parse(localStorage.getItem('admin_user'));
+let selectedImages = [];
+const MAX_IMAGES = 3;
 
 async function api(url, opts = {}) {
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -83,11 +85,132 @@ function showProductForm(product) {
     document.getElementById('productDesc').value = product ? product.description : '';
     document.getElementById('productPrice').value = product ? product.price : '';
     document.getElementById('productStock').value = product ? product.stock : '';
-    document.getElementById('productImage').value = product ? product.image_urls : '';
     document.getElementById('productModalTitle').textContent = product ? 'Edit Product' : 'Add Product';
+    
+    // Reset image handling
+    selectedImages = [];
+    updateImagePreview();
+    document.getElementById('productImages').value = '';
+    
+    // If editing and product has existing images, show them
+    if (product && product.image_urls && Array.isArray(product.image_urls)) {
+        const previewContainer = document.getElementById('imagePreview');
+        const countElement = document.getElementById('imageCount');
+        
+        product.image_urls.forEach((url, index) => {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'image-preview-item';
+            previewItem.innerHTML = `
+                <img src="${url}" alt="Existing image">
+                <button class="remove-btn" onclick="removeExistingImage('${url}')">×</button>
+            `;
+            previewContainer.appendChild(previewItem);
+        });
+        
+        countElement.textContent = `${product.image_urls.length}/${MAX_IMAGES} existing images`;
+    }
+    
     document.getElementById('productModal').style.display = 'flex';
 }
-function hideProductForm() { document.getElementById('productModal').style.display = 'none'; }
+
+function hideProductForm() { 
+    document.getElementById('productModal').style.display = 'none';
+    selectedImages = [];
+    updateImagePreview();
+}
+
+function handleImageUpload(event) {
+    const files = Array.from(event.target.files);
+    
+    // Check if adding these files would exceed the limit
+    if (selectedImages.length + files.length > MAX_IMAGES) {
+        alert(`You can only upload a maximum of ${MAX_IMAGES} images. Currently selected: ${selectedImages.length}`);
+        event.target.value = ''; // Reset input
+        return;
+    }
+    
+    // Add new files to selected images
+    files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+            selectedImages.push(file);
+        }
+    });
+    
+    updateImagePreview();
+}
+
+function updateImagePreview() {
+    const previewContainer = document.getElementById('imagePreview');
+    const countElement = document.getElementById('imageCount');
+    
+    previewContainer.innerHTML = '';
+    countElement.textContent = `${selectedImages.length}/${MAX_IMAGES} images selected`;
+    
+    selectedImages.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'image-preview-item';
+            previewItem.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <button class="remove-btn" onclick="removeImage(${index})">×</button>
+            `;
+            previewContainer.appendChild(previewItem);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function removeImage(index) {
+    selectedImages.splice(index, 1);
+    updateImagePreview();
+    document.getElementById('productImages').value = '';
+}
+
+function removeExistingImage(url) {
+    // For now, we'll just remove it from the preview
+    // In a full implementation, you'd want to track this and remove it when saving
+    const previewItems = document.querySelectorAll('.image-preview-item');
+    previewItems.forEach(item => {
+        if (item.querySelector('img').src === url) {
+            item.remove();
+        }
+    });
+    
+    // Update count
+    const countElement = document.getElementById('imageCount');
+    const currentCount = parseInt(countElement.textContent.split('/')[0]);
+    countElement.textContent = `${currentCount - 1}/${MAX_IMAGES} images`;
+}
+
+async function uploadImages() {
+    if (selectedImages.length === 0) return [];
+    
+    const formData = new FormData();
+    selectedImages.forEach((file, index) => {
+        formData.append('images', file);
+    });
+    
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to upload images');
+        }
+        
+        const data = await response.json();
+        return data.urls || [];
+    } catch (error) {
+        console.error('Image upload error:', error);
+        throw error;
+    }
+}
 
 async function saveProduct() {
     const id = document.getElementById('editProductId').value;
@@ -97,13 +220,28 @@ async function saveProduct() {
         price: Number(document.getElementById('productPrice').value),
         stock: Number(document.getElementById('productStock').value),
     };
-    const image = document.getElementById('productImage').value;
-    if (image) data.image_urls = image;
+    
     try {
+        // Get existing images from preview
+        const existingImages = [];
+        document.querySelectorAll('.image-preview-item img').forEach(img => {
+            existingImages.push(img.src);
+        });
+        
+        // Upload new images if any are selected
+        if (selectedImages.length > 0) {
+            const newImageUrls = await uploadImages();
+            data.image_urls = [...existingImages, ...newImageUrls];
+        } else if (existingImages.length > 0) {
+            data.image_urls = existingImages;
+        }
+        
         if (id) await api(`/api/products/${id}`, { method:'PUT', body:JSON.stringify(data) });
         else await api('/api/products', { method:'POST', body:JSON.stringify(data) });
         hideProductForm(); loadProducts();
-    } catch(e) { alert(e.message); }
+    } catch(e) { 
+        alert(e.message || 'Failed to save product. Please try again.'); 
+    }
 }
 
 async function editProduct(id) {

@@ -3,6 +3,8 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -15,10 +17,42 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+// Configure multer for image uploads
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+        files: 3 // Maximum 3 files
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -57,6 +91,25 @@ function determinePayment(total) {
   }
   return { method: 'half_half', amountPaid: 0, amountDue: total, status: 'pending' };
 }
+
+// ==================== IMAGE UPLOAD ====================
+
+app.post('/api/upload', authMiddleware, adminOnly, upload.array('images', 3), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        const urls = req.files.map(file => {
+            return `/uploads/${file.filename}`;
+        });
+
+        res.json({ urls });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'Failed to upload images' });
+    }
+});
 
 // ==================== AUTH ====================
 
@@ -130,7 +183,16 @@ app.get('/api/products/:id', async (req, res) => {
 app.post('/api/products', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { name, description, price, old_price, stock, image_urls, category_id } = req.body;
-    const { data, error } = await supabase.from('products').insert({ name, description, price, old_price, stock, image_urls, category_id }).select().single();
+    const { data, error } = await supabase.from('products').insert({ 
+      name, 
+      description, 
+      price, 
+      old_price, 
+      stock, 
+      image_url: Array.isArray(image_urls) && image_urls.length > 0 ? image_urls[0] : null,
+      image_urls: Array.isArray(image_urls) ? image_urls : null,
+      category_id 
+    }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
   } catch (e) {
@@ -140,7 +202,20 @@ app.post('/api/products', authMiddleware, adminOnly, async (req, res) => {
 
 app.put('/api/products/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { data, error } = await supabase.from('products').update(req.body).eq('id', req.params.id).select().single();
+    const { name, description, price, old_price, stock, image_urls, category_id } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = price;
+    if (old_price !== undefined) updateData.old_price = old_price;
+    if (stock !== undefined) updateData.stock = stock;
+    if (image_urls !== undefined) {
+      updateData.image_urls = image_urls;
+      updateData.image_url = Array.isArray(image_urls) && image_urls.length > 0 ? image_urls[0] : null;
+    }
+    if (category_id !== undefined) updateData.category_id = category_id;
+    
+    const { data, error } = await supabase.from('products').update(updateData).eq('id', req.params.id).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
   } catch (e) {

@@ -51,7 +51,14 @@
             <textarea id="productDesc" placeholder="Description"></textarea>
             <input type="number" id="productPrice" placeholder="Price (UGX)" min="0">
             <input type="number" id="productStock" placeholder="Stock quantity" min="0">
-            <input type="text" id="productImage" placeholder="Image URL (optional)">
+            
+            <div class="image-upload-section">
+                <label>Product Images (Max 3)</label>
+                <input type="file" id="productImages" accept="image/*" multiple onchange="handleImageUpload(event)">
+                <div id="imagePreview" class="image-preview"></div>
+                <p id="imageCount" class="image-count">0/3 images selected</p>
+            </div>
+            
             <div class="modal-actions">
                 <button onclick="saveProduct()">Save</button>
                 <button onclick="hideProductForm()">Cancel</button>

@@ -20,6 +20,7 @@ CREATE TABLE products (
     old_price DECIMAL(10, 2),
     stock INTEGER DEFAULT 0,
     image_url TEXT,
+    image_urls TEXT[],
     category VARCHAR(100),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
