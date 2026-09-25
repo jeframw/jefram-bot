@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jefram Stores - Order Online</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Jefram Stores</h1>
+            <button id="cartBtn" onclick="showCart()">Cart (<span id="cartCount">0</span>)</button>
+        </div>
+    </header>
+    <main>
+        <section id="products" class="products-grid"></section>
+    </main>
+    <div id="cartModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Your Cart</h2>
+            <div id="cartItems"></div>
+            <div id="cartTotal"></div>
+            <div id="paymentSection" style="display:none;">
+                <h3>Payment Method</h3>
+                <label><input type="radio" name="payment" value="online" checked> Pay Online</label>
+                <label><input type="radio" name="payment" value="delivery"> Pay on Delivery</label>
+                <div id="paymentInfo" class="payment-info"></div>
+                <button onclick="placeOrder()">Place Order</button>
+            </div>
+            <button onclick="hideCart()">Close</button>
+        </div>
+    </div>
+    <div id="orderModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Order Placed!</h2>
+            <div id="orderInfo"></div>
+            <button onclick="hideOrder()">Close</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

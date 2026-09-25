@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jefram Stores - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Admin Panel</h1>
+            <div id="userArea"></div>
+        </div>
+    </header>
+    <main id="mainContent" style="display:none;">
+        <nav class="admin-nav">
+            <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+            <button class="nav-btn" onclick="showSection('products')">Products</button>
+            <button class="nav-btn" onclick="showSection('orders')">Orders</button>
+        </nav>
+        <section id="dashboard" class="admin-section">
+            <h2>Dashboard</h2>
+            <div id="stats" class="stats-grid"></div>
+        </section>
+        <section id="products" class="admin-section" style="display:none;">
+            <div class="section-header">
+                <h2>Products</h2>
+                <button onclick="showProductForm()">Add Product</button>
+            </div>
+            <div id="productList"></div>
+        </section>
+        <section id="orders" class="admin-section" style="display:none;">
+            <h2>Orders</h2>
+            <div id="orderList"></div>
+        </section>
+    </main>
+    <div id="loginModal" class="modal" style="display:flex;">
+        <div class="modal-content">
+            <h2>Admin Login</h2>
+            <input type="tel" id="phoneInput" placeholder="Phone number (e.g. 256XXXXXXXXX)" maxlength="15">
+            <button onclick="login()">Login</button>
+            <p id="loginError" class="error"></p>
+        </div>
+    </div>
+    <div id="productModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2 id="productModalTitle">Add Product</h2>
+            <input type="hidden" id="editProductId">
+            <input type="text" id="productName" placeholder="Product name">
+            <textarea id="productDesc" placeholder="Description"></textarea>
+            <input type="number" id="productPrice" placeholder="Price (UGX)" min="0">
+            <input type="number" id="productStock" placeholder="Stock quantity" min="0">
+            <input type="text" id="productImage" placeholder="Image URL (optional)">
+            <div class="modal-actions">
+                <button onclick="saveProduct()">Save</button>
+                <button onclick="hideProductForm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

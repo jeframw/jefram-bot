@@ -1,0 +1,6 @@
+@echo off
+echo Starting Jefram Bot Server...
+start "Server" cmd /c "node server.js"
+echo Starting WhatsApp Bot...
+start "WhatsApp Bot" cmd /c "node bot/index.js"
+echo Both services started!

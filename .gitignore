@@ -1,0 +1,9 @@
+node_modules/
+.env
+.wwebjs_auth/
+chrome-profile/
+*.log
+.DS_Store
+coverage/
+dist/
+build/
