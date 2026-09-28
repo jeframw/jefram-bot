@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env.production
 .wwebjs_auth/
 chrome-profile/
 *.log
@@ -7,3 +8,4 @@ chrome-profile/
 coverage/
 dist/
 build/
+.railway/
