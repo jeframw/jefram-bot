@@ -1,2 +1,2 @@
 web: npm start
-worker: npm run bot
+whatsapp-bot: npm run bot
